@@ -3,11 +3,11 @@ from exceptions import MalformedInputException
 
 
 class Exchange:
-
     def __init__(self, redis_pool):
         self._orderbooks = {p:Orderbook(p) for p in PAIRS}
         self._redis_pool = redis_pool
         self._order_id_key = f'ORDERID:{EXCHANGE_ID}'
+        self._order_data_key =  f'ORDERDETAILS:{EXCHANGE_ID}',
 
     async def reset_orderid_if_required(self):
         async with self._redis_pool.get() as redis:
@@ -27,12 +27,10 @@ class Exchange:
 
 
 class Orderbook:
-
     def __init__(self, pair):
         self.pair = pair
         self._keys = {'bid': f'BIDS:{EXCHANGE_ID}:{pair}',
                       'ask': f'ASKS:{EXCHANGE_ID}:{pair}',
-                      'data': f'ORDERS:{EXCHANGE_ID}:{pair}',
         }
 
     def _insert_to_bid(self, order):
@@ -65,12 +63,14 @@ class Orderbook:
         """
         pass
 
-    def insert_order(self, order):
+    def insert_order(self, order_id, data):
         """
         order is a dict with keys : side (bid/ask)
                                     price
                                     amount
         """
+        import ipdb
+        ipdb.set_trace()
         pass
 
     def remove_order(self, order_id):

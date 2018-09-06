@@ -1,13 +1,13 @@
 from constants import EXCHANGE_ID, PAIRS
 from exceptions import MalformedInputException
+from itertools import chain
 
 
 class Exchange:
     def __init__(self, redis_pool):
-        self._orderbooks = {p:Orderbook(p) for p in PAIRS}
         self._redis_pool = redis_pool
+        self._orderbooks = {p:Orderbook(p, redis_pool) for p in PAIRS}
         self._order_id_key = f'ORDERID:{EXCHANGE_ID}'
-        self._order_data_key =  f'ORDERDETAILS:{EXCHANGE_ID}',
 
     async def reset_orderid_if_required(self):
         async with self._redis_pool.get() as redis:
@@ -27,20 +27,26 @@ class Exchange:
 
 
 class Orderbook:
-    def __init__(self, pair):
+    def __init__(self, pair, redis_pool):
         self.pair = pair
-        self._keys = {'bid': f'BIDS:{EXCHANGE_ID}:{pair}',
-                      'ask': f'ASKS:{EXCHANGE_ID}:{pair}',
+        self.redis_pool = redis_pool
+        self._keys = {'bid': f'BIDS:exchange-{EXCHANGE_ID}:{pair}',
+                      'ask': f'ASKS:exchange-{EXCHANGE_ID}:{pair}',
         }
 
-    def _insert_to_bid(self, order):
-        pass
+    async def _insert_to_bid(self, order_id, price):
+        async with self.redis_pool.get() as redis:
+            print(self._keys['bid'])
+            print(price)
+            await redis.execute('ZADD', self._keys['bid'], price, order_id)
 
-    def _insert_to_ask(self, order):
-        pass
-
-    def _insert_order_details(self, order):
-        pass
+    async def _insert_to_ask(self, order_id, price):
+        async with self.redis_pool.get() as redis:
+            print(self._keys['ask'])
+            print(price)
+            import ipdb
+            ipdb.set_trace()
+            await redis.execute('ZADD', self._keys['ask'], price, order_id)
 
     def _check_for_matches(self):
         pass
@@ -63,18 +69,38 @@ class Orderbook:
         """
         pass
 
-    def insert_order(self, order_id, data):
+    async def insert_order(self, order_id, pair, amount, price, side, userid):
         """
         order is a dict with keys : side (bid/ask)
                                     price
                                     amount
         """
-        import ipdb
-        ipdb.set_trace()
-        pass
+        if side == 'bid':
+            await self._insert_to_bid(order_id, price)
+        else:
+            await self._insert_to_ask(order_id, price)
+        data = {'price':price, 'amount':amount, 'side':side, 'pair':pair, 'userid':userid}
+        await OrderDetail(order_id).set_data(data, self.redis_pool)
+        return data
 
     def remove_order(self, order_id):
         """
         cancel order with given id
         """
         pass
+
+
+class OrderDetail:
+    def __init__(self, order_id):
+        self.order_id = order_id
+        self.exchange_id = EXCHANGE_ID
+        self.key = f'ORDERDETAIL:{self.exchange_id}:{order_id}'
+        print(self.key)
+
+    async def set_data(self, data, redis_pool):
+        async with redis_pool.get() as redis:
+            await redis.execute(
+                'HMSET',
+                self.key,
+                *chain.from_iterable(data.items()),
+            )

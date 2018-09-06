@@ -20,11 +20,18 @@ async def ping(request):
 
 @app.post('/order/', name='place_order')
 async def place_order(request):
+    """
+    pair, amount, price, side in the input
+    side: bid / ask
+    """
     response = await place_order_controller(request.json, request.app.exchange)
     return response
 
 @app.delete('/order/', name='cancel_order')
 async def cancel_order(request):
+    """
+    order_id, pair in input
+    """
     response = await cancel_order_controller(request.json, request.app.exchange)
     return response
 

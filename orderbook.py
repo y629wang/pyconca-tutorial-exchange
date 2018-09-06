@@ -37,31 +37,21 @@ class Orderbook:
     async def _insert_to_bid(self, order_id, price):
         async with self.redis_pool.get() as redis:
             print(self._keys['bid'])
-            print(price)
             await redis.execute('ZADD', self._keys['bid'], price, order_id)
 
     async def _insert_to_ask(self, order_id, price):
         async with self.redis_pool.get() as redis:
             print(self._keys['ask'])
-            print(price)
-            import ipdb
-            ipdb.set_trace()
             await redis.execute('ZADD', self._keys['ask'], price, order_id)
 
     def _check_for_matches(self):
         pass
 
-    def _remove_from_bid(self):
-        pass
-
-    def _remove_from_ask(self):
-        pass
-
-    def _remove_order_details(self):
-        pass
-
-    def _generate_order_id(self):
-        pass
+    async def _remove_from_bid_and_ask(self, order_id):
+        async with self.redis_pool.get() as redis:
+            a = await redis.execute('ZREM', self._keys['bid'], order_id)
+            b = await redis.execute('ZREM', self._keys['ask'], order_id)
+        return bool(a+b)
 
     def match_orders(self, buy_id, sell_id):
         """
@@ -83,11 +73,13 @@ class Orderbook:
         await OrderDetail(order_id).set_data(data, self.redis_pool)
         return data
 
-    def remove_order(self, order_id):
+    async def remove_order(self, order_id):
         """
         cancel order with given id
         """
-        pass
+        found = await self._remove_from_bid_and_ask(order_id)
+        await OrderDetail(order_id).pop(self.redis_pool)
+        return found
 
 
 class OrderDetail:
@@ -104,3 +96,7 @@ class OrderDetail:
                 self.key,
                 *chain.from_iterable(data.items()),
             )
+
+    async def pop(self, redis_pool):
+        async with redis_pool.get() as redis:
+            await redis.execute('DEL', self.key)

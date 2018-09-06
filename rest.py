@@ -4,8 +4,11 @@ from sanic.response import json
 import aioredis
 from constants import BALANCES, PAIRS
 from orderbook import Exchange
-from controllers import place_order_controller, cancel_order_controller
-
+from controllers import (
+    place_order_controller,
+    cancel_order_controller,
+    get_orders_controller,
+)
 app = Sanic()
 
 
@@ -18,7 +21,7 @@ async def ping(request):
     return json({'ping':val})
 
 
-@app.post('/order/', name='place_order')
+@app.post('/orders/', name='place_order')
 async def place_order(request):
     """
     pair, amount, price, side in the input
@@ -27,12 +30,20 @@ async def place_order(request):
     response = await place_order_controller(request.json, request.app.exchange)
     return response
 
-@app.delete('/order/', name='cancel_order')
+
+@app.delete('/orders/', name='cancel_order')
 async def cancel_order(request):
     """
     order_id, pair in input
     """
     response = await cancel_order_controller(request.json, request.app.exchange)
+    return response
+
+
+@app.get('/orders/', name='list_orders_page')
+async def list_orders_page(request):
+    response = await get_orders_controller(request.args, request.app.exchange)
+    # convert data to html via jinja
     return response
 
 

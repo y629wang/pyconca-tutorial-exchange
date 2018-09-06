@@ -88,3 +88,23 @@ async def cancel_order_controller(data, exchange):
     result = await orderbook.remove_order(data['order_id'])
     status = 200 if result else 422
     return response.json({}, status=status)
+
+
+async def get_orders_controller(data, exchange):
+    try:
+        orderbook = exchange.get_orderbook(data['pair'][0])
+    except MalformedInputException as e:
+        return response.json(
+            {'error':'unrecognized pair', 'request_params': data},
+            status=422,
+        )
+    except KeyError:
+        return response.json(
+            {'error':'Bad input, pair not found', 'request_params': data},
+            status=400,
+        )
+
+    result = await orderbook.get_orders()
+    import ipdb
+    ipdb.set_trace()
+    return response.json(result)

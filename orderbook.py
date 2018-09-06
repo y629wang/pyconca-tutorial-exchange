@@ -81,13 +81,24 @@ class Orderbook:
         await OrderDetail(order_id).pop(self.redis_pool)
         return found
 
+    async def get_orders(self):
+        """
+        returns all orders in the orderbook right now. paginated by 20
+        """
+        async with self.redis_pool.get() as redis:
+            asks = await redis.execute('ZRANGE', self._keys['ask'], 0, 20)
+            bids = await redis.execute('ZREVRANGE', self._keys['bid'], 0, 20)
+        return {
+            'bids':[await OrderDetail(b).get_data(self.redis_pool) for b in bids],
+            'asks':[await OrderDetail(a).get_data(self.redis_pool) for a in asks],
+        }
+
 
 class OrderDetail:
     def __init__(self, order_id):
-        self.order_id = order_id
+        self.order_id = int(order_id)
         self.exchange_id = EXCHANGE_ID
-        self.key = f'ORDERDETAIL:{self.exchange_id}:{order_id}'
-        print(self.key)
+        self.key = f'ORDERDETAIL:{self.exchange_id}:{self.order_id}'
 
     async def set_data(self, data, redis_pool):
         async with redis_pool.get() as redis:
@@ -100,3 +111,9 @@ class OrderDetail:
     async def pop(self, redis_pool):
         async with redis_pool.get() as redis:
             await redis.execute('DEL', self.key)
+
+    async def get_data(self, redis_pool):
+        decoder = lambda x: x.decode() # bytes to string
+        async with redis_pool.get() as redis:
+            val = [i.decode() for i in await redis.execute('HGETALL', self.key)]
+            return dict(zip(val[::2], val[1::2]))

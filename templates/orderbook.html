@@ -7,6 +7,14 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
 <div class="container">
+
+<ul class="nav">
+  {% for pair in pairs %}
+    <li class="nav-item">
+      <a class="nav-link active" href="?pair={{ pair }}">{{ pair }}</a>
+    </li>
+  {% endfor %}
+</ul>
   <div class="row">
     <div class="col">
       <blockquote class="blockquote text-center">

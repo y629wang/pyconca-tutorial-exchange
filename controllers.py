@@ -106,7 +106,7 @@ async def get_orders_controller(data, exchange):
         )
 
     bids, asks = await orderbook.get_orders()
-    with open('templates/orderbook.html.j2') as f:
+    with open('templates/orderbook.html') as f:
         template_text = f.read()
     template = Template(template_text)
-    return response.html(template.render(bids=bids, asks=asks))
+    return response.html(template.render(bids=bids, asks=asks, pairs=PAIRS))

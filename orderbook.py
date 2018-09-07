@@ -88,10 +88,8 @@ class Orderbook:
         async with self.redis_pool.get() as redis:
             asks = await redis.execute('ZRANGE', self._keys['ask'], 0, 20)
             bids = await redis.execute('ZREVRANGE', self._keys['bid'], 0, 20)
-        return {
-            'bids':[await OrderDetail(b).get_data(self.redis_pool) for b in bids],
-            'asks':[await OrderDetail(a).get_data(self.redis_pool) for a in asks],
-        }
+        return ([await OrderDetail(b).get_data(self.redis_pool) for b in bids],
+               [await OrderDetail(a).get_data(self.redis_pool) for a in asks])
 
 
 class OrderDetail:

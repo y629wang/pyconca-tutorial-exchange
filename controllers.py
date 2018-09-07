@@ -2,6 +2,7 @@ from sanic import response
 from exceptions import MalformedInputException
 from constants import PAIRS
 from decimal import Decimal
+from jinja2 import Template
 
 
 async def place_order_controller(data, exchange):
@@ -104,7 +105,8 @@ async def get_orders_controller(data, exchange):
             status=400,
         )
 
-    result = await orderbook.get_orders()
-    import ipdb
-    ipdb.set_trace()
-    return response.json(result)
+    bids, asks = await orderbook.get_orders()
+    with open('templates/orderbook.html.j2') as f:
+        template_text = f.read()
+    template = Template(template_text)
+    return response.html(template.render(bids=bids, asks=asks))

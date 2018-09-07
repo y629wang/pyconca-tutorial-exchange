@@ -9,6 +9,9 @@
 <div class="container">
   <div class="row">
     <div class="col">
+      <blockquote class="blockquote text-center">
+        <p class="mb-0"> bids.</p>
+      </blockquote>
         <table id="example" class="display">
             <thead>
                 <tr>
@@ -18,15 +21,20 @@
                 </tr>
             </thead>
             <tbody>
+              {% for bid in bids %}
                 <tr>
-                    <td>Donna Snider</td>
-                    <td>Customer Support</td>
-                    <td>New York</td>
+                    <td>{{ bid.amount }}</td>
+                    <td>{{ bid.price }}</td>
+                    <td>{{ bid.userid }}</td>
                 </tr>
+              {% endfor %}
             </tbody>
         </table>
     </div>
     <div class="col">
+      <blockquote class="blockquote text-center">
+        <p class="mb-0"> asks.</p>
+      </blockquote>
         <table id="example2" class="display">
             <thead>
                 <tr>
@@ -36,11 +44,13 @@
                 </tr>
             </thead>
             <tbody>
+              {% for ask in asks %}
                 <tr>
-                    <td>Donna Snider</td>
-                    <td>Customer Support</td>
-                    <td>New York</td>
+                    <td>{{ ask.amount }}</td>
+                    <td>{{ ask.price }}</td>
+                    <td>{{ ask.userid }}</td>
                 </tr>
+              {% endfor %}
             </tbody>
         </table>
     </div>

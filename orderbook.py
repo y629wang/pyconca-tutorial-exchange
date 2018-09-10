@@ -114,4 +114,4 @@ class OrderDetail:
         decoder = lambda x: x.decode() # bytes to string
         async with redis_pool.get() as redis:
             val = [i.decode() for i in await redis.execute('HGETALL', self.key)]
-            return dict(zip(val[::2], val[1::2]))
+            return {**dict(zip(val[::2], val[1::2])), 'orderid':self.order_id}

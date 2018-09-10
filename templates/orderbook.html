@@ -17,23 +17,60 @@
 </ul>
   <div class="row">
     <div class="col">
+      <h3 id="placeOrderHeading"></h3>
+
+      <form id="orderForm">
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <label for="inputamount">Amount</label>
+            <input name="amount" type="number" class="form-control" id="inputamount" placeholder="200.00">
+          </div>
+          <div class="form-group col-md-3">
+            <label for="inputprice">Price</label>
+            <input name="price" type="number" class="form-control" id="inputprice" placeholder="0.012">
+          </div>
+          <div class="form-group col-md-3">
+            <label for="inputState">Side</label>
+            <select name="side" id="inputState" class="form-control">
+              <option selected>bid</option>
+              <option>ask</option>
+            </select>
+          </div>
+          <div class="form-group col-md-3">
+            <label for="inputuser">User</label>
+            <input name="user_id" type="number" class="form-control" id="inputuser" value="1234">
+          </div>
+          <input name="pair" id="inputpair" type="hidden">
+        </div>
+      </form>
+      <div class="col-md-2">
+        <button type="button" class="btn btn-primary" onclick="submit();">Place Order</button>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
       <blockquote class="blockquote text-center">
         <p class="mb-0"> bids.</p>
       </blockquote>
         <table id="example" class="display">
             <thead>
                 <tr>
+                    <th>S no</th>
                     <th>Amount</th>
                     <th>Bid Price</th>
                     <th>User</th>
+                    <th> Order id</th>
                 </tr>
             </thead>
             <tbody>
               {% for bid in bids %}
                 <tr>
+                    <td> {{ loop.index }}</td>
                     <td>{{ bid.amount }}</td>
                     <td>{{ bid.price }}</td>
                     <td>{{ bid.userid }}</td>
+                    <td>{{ bid.orderid }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -46,17 +83,21 @@
         <table id="example2" class="display">
             <thead>
                 <tr>
+                    <th> S no </th>
                     <th>Amount</th>
                     <th>Ask Price</th>
                     <th>User</th>
+                    <th> Order id</th>
                 </tr>
             </thead>
             <tbody>
               {% for ask in asks %}
                 <tr>
+                    <td> {{ loop.index }}</td>
                     <td>{{ ask.amount }}</td>
                     <td>{{ ask.price }}</td>
                     <td>{{ ask.userid }}</td>
+                    <td> {{ ask.orderid }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -71,5 +112,33 @@ $(document).ready(function() {
 $(document).ready(function() {
     $('#example2').DataTable({"searching": false, "paging":false});
 } );
+
+var url_string = window.location.href; //window.location.href
+var url = new URL(url_string);
+var pair = url.searchParams.get("pair");
+
+$('#placeOrderHeading').text("Place An Order for pair: " + pair);
+$('#inputpair').val(pair)
+
+
+function submit() {
+    var raw_data = $('#orderForm').serializeArray()
+
+    var data = raw_data.reduce(function(acc, cur, i) {
+        acc[cur["name"]] = cur["value"];
+        return acc;
+    }, {});
+
+    $.ajax({
+        type: 'post',
+        contentType: 'application/json',
+        dataType: 'json',
+        url: '/orders/',
+        data: JSON.stringify(data),
+        success: function(a, b, c) { window.location.reload(); },
+        error: function(a, b, c) {alert('ERROR: ' + a.responseJSON.error)}
+    })
+}
+
 </script>
 </html>

@@ -1,8 +1,9 @@
 from sanic import response
 from exceptions import MalformedInputException
-from constants import PAIRS
+from constants import PAIRS, MARKET_ON
 from decimal import Decimal
 from jinja2 import Template
+from matching import market_matching_engine
 
 
 async def place_order_controller(data, exchange):
@@ -69,6 +70,9 @@ async def place_order_controller(data, exchange):
     order_id = await exchange.get_incremented_order_id()
     details = await orderbook.insert_order(order_id, data['pair'], amount,
                                            price, side, userid)
+    if MARKET_ON:
+        await market_matching_engine(order_id)
+
     return response.json({'order_id': order_id, 'data':details})
 
 
@@ -87,8 +91,10 @@ async def cancel_order_controller(data, exchange):
         )
 
     result = await orderbook.remove_order(data['order_id'])
-    status = 200 if result else 422
-    return response.json({}, status=status)
+    if result:
+        return response.json({})
+    else:
+        return response.json({'error':'Order not found'}, status=422)
 
 
 async def get_orders_controller(data, exchange):

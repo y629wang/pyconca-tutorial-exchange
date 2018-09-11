@@ -39,6 +39,10 @@ class Orderbook:
             print(self._keys['bid'])
             await redis.execute('ZADD', self._keys['bid'], price, order_id)
 
+    async def publish_message(self, message):
+        async with self.redis_pool.get() as redis:
+            await redis.execute('PUBLISH', 'updates', message)
+
     async def _insert_to_ask(self, order_id, price):
         async with self.redis_pool.get() as redis:
             print(self._keys['ask'])
@@ -70,6 +74,7 @@ class Orderbook:
         else:
             await self._insert_to_ask(order_id, price)
         data = {'price':price, 'amount':amount, 'side':side, 'pair':pair, 'userid':userid}
+        await self.publish_message(f"ADDED-{order_id}")
         await OrderDetail(order_id).set_data(data, self.redis_pool)
         return data
 
@@ -78,7 +83,9 @@ class Orderbook:
         cancel order with given id
         """
         found = await self._remove_from_bid_and_ask(order_id)
-        await OrderDetail(order_id).pop(self.redis_pool)
+        if found:
+            await self.publish_message(f"REMOVED-{order_id}")
+            await OrderDetail(order_id).pop(self.redis_pool)
         return found
 
     async def get_orders(self):

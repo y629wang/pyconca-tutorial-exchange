@@ -16,3 +16,6 @@ PAIRS = {'ETHUSD':{'ticksize':'0.0000001','quantity_increment':'0.001'},
         }
 
 EXCHANGE_ID = 1
+
+MARKET_ON = False
+# market = false for turning off the market. ie order execution

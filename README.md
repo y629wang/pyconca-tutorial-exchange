@@ -3,6 +3,8 @@
 A mock exchange for testing purposes. 
 ☠☠ THIS IS WORK IN PROGRESS  ☠☠
 
+* [Please report any bugs / issues here](https://gitlab.com/swissborg/oms/mock-exchange/issues/new)
+
 
 # Prerequisites
 

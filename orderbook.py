@@ -1,7 +1,10 @@
 from constants import EXCHANGE_ID, PAIRS
+import time
+import asyncio
 from exceptions import MalformedInputException
 from itertools import chain
 import json
+from decimal import Decimal
 
 
 class Exchange:
@@ -9,15 +12,16 @@ class Exchange:
         self._redis_pool = redis_pool
         self._orderbooks = {p:Orderbook(p, redis_pool) for p in PAIRS}
         self._order_id_key = f'ORDERID:{EXCHANGE_ID}'
+        self._trade_id_key = f'TRADEID:{EXCHANGE_ID}'
 
     async def reset_orderid_if_required(self):
         async with self._redis_pool.get() as redis:
             await redis.execute('SETNX', self._order_id_key, 1)
+            await redis.execute('SETNX', self._trade_id_key, 1)
 
     async def get_incremented_order_id(self):
         async with self._redis_pool.get() as redis:
             val = await redis.execute('INCR', self._order_id_key)
-        print(f'GET INCREMENTED ORDER ID {val}')
         return val
 
     def get_orderbook(self, pair):
@@ -49,8 +53,45 @@ class Orderbook:
             print(self._keys['ask'])
             await redis.execute('ZADD', self._keys['ask'], price, order_id)
 
-    def _check_for_matches(self):
-        pass
+    async def check_for_matches(self):
+        top_bid, top_ask = await self._get_top_of_book()
+        return Decimal(top_bid['price']) >= Decimal(top_ask['price'])
+
+    async def _get_top_of_book(self):
+        bids, asks = await self.get_orders(n=1)
+        return bids[0], asks[0]
+
+    def _make_trade_json(self, bid, ask):
+        now = time.time()
+        return {
+            "price":ask["price"],
+            "pair": ask["pair"],
+            "amount":ask["amount"],
+            "bid_user":bid["userid"],
+            "ask_user":ask["userid"],
+            "server_time":now,
+            "trade_id": '',
+        }
+
+    async def _matching_engine(self):
+        top_bid, top_ask = await self._get_top_of_book()
+        if Decimal(top_bid['price']) < Decimal(top_ask['price']):
+            return
+
+        # if it matches fully remove the orders
+        if Decimal(top_bid['amount']) == Decimal(top_ask['amount']):
+            aaa = await self.remove_order(top_ask['orderid'])
+            # remove the bid
+            bbb = await self.remove_order(top_bid['orderid'])
+            trade = self._make_trade_json(top_bid, top_ask)
+            await self.publish_message(json.dumps(trade))
+
+        # if it matches partually, remove an order and modify the other one
+        if Decimal(top_bid['amount']) > Decimal(top_ask['amount']):
+            pass
+
+        if Decimal(top_bid['amount']) < Decimal(top_ask['amount']):
+            pass
 
     async def _remove_from_bid_and_ask(self, order_id):
         async with self.redis_pool.get() as redis:
@@ -58,18 +99,12 @@ class Orderbook:
             b = await redis.execute('ZREM', self._keys['ask'], order_id)
         return bool(a+b)
 
-    def match_orders(self, buy_id, sell_id):
-        """
-        iteratively match orders, until no match
-        """
-        pass
+    async def run_order_matching_engine(self):
+        need_matching = True
+        while need_matching:
+            need_matching = await self._matching_engine()
 
     async def insert_order(self, order_id, pair, amount, price, side, userid):
-        """
-        order is a dict with keys : side (bid/ask)
-                                    price
-                                    amount
-        """
         if side == 'bid':
             await self._insert_to_bid(order_id, price)
         else:
@@ -90,13 +125,13 @@ class Orderbook:
             await self.publish_message(json.dumps(data))
         return found
 
-    async def get_orders(self):
+    async def get_orders(self, n=20):
         """
         returns all orders in the orderbook right now. paginated by 20
         """
         async with self.redis_pool.get() as redis:
-            asks = await redis.execute('ZRANGE', self._keys['ask'], 0, 20)
-            bids = await redis.execute('ZREVRANGE', self._keys['bid'], 0, 20)
+            asks = await redis.execute('ZRANGE', self._keys['ask'], 0, n-1)
+            bids = await redis.execute('ZREVRANGE', self._keys['bid'], 0, n-1)
         return ([await OrderDetail(b).get_data(self.redis_pool) for b in bids],
                [await OrderDetail(a).get_data(self.redis_pool) for a in asks])
 
@@ -114,6 +149,7 @@ class OrderDetail:
                 self.key,
                 *chain.from_iterable(data.items()),
             )
+        return await self.get_data(redis_pool)
 
     async def pop(self, redis_pool):
         async with redis_pool.get() as redis:

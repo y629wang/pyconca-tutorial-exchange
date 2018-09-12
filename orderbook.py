@@ -54,29 +54,33 @@ class Orderbook:
             await redis.execute('ZADD', self._keys['ask'], price, order_id)
 
     async def check_for_matches(self):
-        top_bid, top_ask = await self._get_top_of_book()
+        try:
+            top_bid, top_ask = await self._get_top_of_book()
+        except IndexError:
+            return False
         return Decimal(top_bid['price']) >= Decimal(top_ask['price'])
 
     async def _get_top_of_book(self):
         bids, asks = await self.get_orders(n=1)
         return bids[0], asks[0]
 
-    def _make_trade_json(self, bid, ask):
+    def _make_trade_json(self, bid, ask, amount=None):
+        if amount is None:
+            amount = ask["amount"]
         now = time.time()
-        return {
-            "price":ask["price"],
-            "pair": ask["pair"],
-            "amount":ask["amount"],
-            "bid_user":bid["userid"],
-            "ask_user":ask["userid"],
-            "server_time":now,
-            "trade_id": '',
+        return {"price":ask["price"],
+                "pair": ask["pair"],
+                "amount":amount,
+                "bid_user":bid["userid"],
+                "ask_user":ask["userid"],
+                "server_time":now,
+                "trade_id": '',
         }
 
     async def _matching_engine(self):
         top_bid, top_ask = await self._get_top_of_book()
         if Decimal(top_bid['price']) < Decimal(top_ask['price']):
-            return
+            return False
 
         # if it matches fully remove the orders
         if Decimal(top_bid['amount']) == Decimal(top_ask['amount']):
@@ -85,13 +89,31 @@ class Orderbook:
             bbb = await self.remove_order(top_bid['orderid'])
             trade = self._make_trade_json(top_bid, top_ask)
             await self.publish_message(json.dumps(trade))
+            return True
 
         # if it matches partually, remove an order and modify the other one
         if Decimal(top_bid['amount']) > Decimal(top_ask['amount']):
-            pass
+            trade = self._make_trade_json(top_bid, top_ask, amount=top_ask['amount'])
+            await self.remove_order(top_ask['orderid'])
+            await self._reduce_order(
+                top_bid['orderid'],
+                amount=top_ask['amount'],
+            )
+            await self.publish_message(json.dumps(trade))
+            return True
 
         if Decimal(top_bid['amount']) < Decimal(top_ask['amount']):
-            pass
+            trade = self._make_trade_json(top_bid, top_ask, amount=top_bid['amount'])
+            await self.remove_order(top_bid['orderid'])
+            await self._reduce_order(
+                top_ask['orderid'],
+                amount=top_bid['amount'],
+            )
+            await self.publish_message(json.dumps(trade))
+            return True
+
+    async def _reduce_order(self, order_id, amount):
+        await OrderDetail(order_id).reduce_amount(amount, self.redis_pool)
 
     async def _remove_from_bid_and_ask(self, order_id):
         async with self.redis_pool.get() as redis:
@@ -141,6 +163,10 @@ class OrderDetail:
         self.order_id = int(order_id)
         self.exchange_id = EXCHANGE_ID
         self.key = f'ORDERDETAIL:{self.exchange_id}:{self.order_id}'
+
+    async def reduce_amount(self, amount, redis_pool):
+        async with redis_pool.get() as redis:
+            await redis.execute('HINCRBYFLOAT', self.key, 'amount', '-' + amount)
 
     async def set_data(self, data, redis_pool):
         async with redis_pool.get() as redis:

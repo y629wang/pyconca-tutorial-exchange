@@ -58,12 +58,15 @@ async def user_balance(request):
 
 @app.listener('before_server_start')
 async def before_server_start(app, loop):
-    app.redis_pool = await aioredis.create_pool(
-        ('localhost', 6379),
-        minsize=5,
-        maxsize=10,
-        loop=loop
-    )
+    try:
+        app.redis_pool = await aioredis.create_pool(
+            ('localhost', 6379),
+            minsize=5,
+            maxsize=10,
+            loop=loop
+        )
+    except Exception as e:
+        print('REDIS COULD NOT CONNECT')
     app.exchange = Exchange(app.redis_pool)
     await app.exchange.reset_orderid_if_required()
 

@@ -1,6 +1,7 @@
 from constants import EXCHANGE_ID, PAIRS
 from exceptions import MalformedInputException
 from itertools import chain
+import json
 
 
 class Exchange:
@@ -74,8 +75,8 @@ class Orderbook:
         else:
             await self._insert_to_ask(order_id, price)
         data = {'price':price, 'amount':amount, 'side':side, 'pair':pair, 'userid':userid}
-        await self.publish_message(f"ADDED-{order_id}")
-        await OrderDetail(order_id).set_data(data, self.redis_pool)
+        data = await OrderDetail(order_id).set_data(data, self.redis_pool)
+        await self.publish_message(json.dumps(data))
         return data
 
     async def remove_order(self, order_id):
@@ -84,8 +85,9 @@ class Orderbook:
         """
         found = await self._remove_from_bid_and_ask(order_id)
         if found:
-            await self.publish_message(f"REMOVED-{order_id}")
-            await OrderDetail(order_id).pop(self.redis_pool)
+            data = await OrderDetail(order_id).pop(self.redis_pool)
+            data['amount'] = '-' + data['amount']
+            await self.publish_message(json.dumps(data))
         return found
 
     async def get_orders(self):
@@ -115,10 +117,12 @@ class OrderDetail:
 
     async def pop(self, redis_pool):
         async with redis_pool.get() as redis:
+            data = await self.get_data(redis_pool)
             await redis.execute('DEL', self.key)
+        return data
 
     async def get_data(self, redis_pool):
         decoder = lambda x: x.decode() # bytes to string
         async with redis_pool.get() as redis:
             val = [i.decode() for i in await redis.execute('HGETALL', self.key)]
-            return {**dict(zip(val[::2], val[1::2])), 'orderid':self.order_id}
+        return {**dict(zip(val[::2], val[1::2])), 'orderid':self.order_id}

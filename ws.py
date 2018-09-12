@@ -12,7 +12,6 @@ class RedisToWS:
         self.channel = 'updates'
 
     def start(self):
-        #self.loop.run_until_complete(self.receive())
         self.loop.run_until_complete(
             websockets.serve(self.ws_handler, 'localhost', 8765),
         )
@@ -21,7 +20,9 @@ class RedisToWS:
     async def ws_handler(self, websocket, path):
         async for message in self.receive():
             print(message)
-            await websocket.send(message)
+            await websocket.send(
+                self.parse_message(message),
+            )
 
     async def receive(self):
         print('receive starting from redis')
@@ -31,6 +32,9 @@ class RedisToWS:
         while (await receiver.wait_message()):
             message = await receiver.get()
             yield message[1].decode('utf-8')
+
+    def parse_message(self, msg):
+        return msg
 
 
 if __name__ == '__main__':

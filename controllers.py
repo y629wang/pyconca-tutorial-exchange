@@ -116,3 +116,4 @@ async def get_orders_controller(data, exchange):
         template_text = f.read()
     template = Template(template_text)
     return response.html(template.render(bids=bids, asks=asks, pairs=PAIRS))
+

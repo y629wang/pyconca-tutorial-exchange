@@ -16,7 +16,7 @@ services:
     # stdin_open: true
     #
     #
-  ws:
+  websocket:
     container_name: websocket
     image: mock_exchange:latest
     command: python ws.py

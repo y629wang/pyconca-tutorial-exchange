@@ -8,22 +8,22 @@ A mock exchange for testing purposes.
 
 # Prerequisites
 
-1. Python 3.7 
+1. Docker and Docker compose
 
-2. Redis 5.0 (yes the beta version 🙈)
+2. This application uses two ports, 8000 and 8765. Make sure those are available on your machine. 
 
 # Run the mock exchange
 
 1. Install prerequisites in the machine
 
-2. Run redis server by using command: `redis-server`
+2. Build Step `docker build -t mock_exchange .`
 
-3. Run REST API server by using command: `make api`
-
-4. Run Websocket Interface by using command: `make websocket`
+3. Run Step `docker-compose up`
 
 # How to use
 1. The REST API server spins up at `localhost:8000`
+
+2. Websocket server spins up at `localhost:8765`
 
 2. Health check `/ping/`
 

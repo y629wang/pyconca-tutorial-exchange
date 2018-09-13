@@ -1,0 +1,37 @@
+version: '3.4'
+services:
+  api:
+    container_name: api
+    image: mock_exchange:latest
+    command: python rest.py
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+    # tty: true
+    # stdin_open: true
+    #
+    #
+  ws:
+    container_name: websocket
+    image: mock_exchange:latest
+    command: python ws.py
+    ports:
+      - "8765:8765"
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+
+  redis:
+    restart: always
+    container_name: redis
+    image: redis:5.0-rc4
+    expose:
+      - "6379"

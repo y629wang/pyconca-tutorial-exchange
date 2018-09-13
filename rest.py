@@ -60,7 +60,7 @@ async def user_balance(request):
 async def before_server_start(app, loop):
     try:
         app.redis_pool = await aioredis.create_pool(
-            ('localhost', 6379),
+            ('redis', 6379),
             minsize=5,
             maxsize=10,
             loop=loop

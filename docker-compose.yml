@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/code
+      - ./src:/code
     depends_on:
       - redis
     links:
@@ -23,7 +23,7 @@ services:
     ports:
       - "8765:8765"
     volumes:
-      - .:/code
+      - ./src:/code
     depends_on:
       - redis
     links:

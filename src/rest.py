@@ -2,7 +2,7 @@ from sanic import Sanic
 import time
 from sanic.response import json
 import aioredis
-from constants import BALANCES, PAIRS
+from constants import BALANCES, PAIRS, EXCHANGE_ID
 from orderbook import Exchange
 from controllers import (
     place_order_controller,
@@ -64,9 +64,10 @@ async def user_balance(request):
 
 @app.listener('before_server_start')
 async def before_server_start(app, loop):
+    print(f'Starting Exchange : {EXCHANGE_ID}')
     try:
         app.redis_pool = await aioredis.create_pool(
-            ('localhost', 6379),
+            ('redis', 6379),
             minsize=5,
             maxsize=10,
             loop=loop

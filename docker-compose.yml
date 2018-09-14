@@ -1,9 +1,11 @@
 version: '3.4'
 services:
-  api:
-    container_name: api
+  exchange-api-1:
+    container_name: exchange-api-1
     image: mock_exchange:latest
     command: python rest.py
+    environment:
+      - EXCHANGE_ID=1
     ports:
       - "8000:8000"
     volumes:
@@ -12,16 +14,75 @@ services:
       - redis
     links:
       - redis:redis
-    # tty: true
-    # stdin_open: true
-    #
-    #
-  websocket:
-    container_name: websocket
+
+  exchange-ws-1:
+    container_name: exchange-ws-1
     image: mock_exchange:latest
     command: python ws.py
+    environment:
+      - EXCHANGE_ID=1
     ports:
       - "8765:8765"
+    volumes:
+      - ./src:/code
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+
+  exchange-api-2:
+    container_name: exchange-api-2
+    image: mock_exchange:latest
+    command: python rest.py
+    environment:
+      - EXCHANGE_ID=2
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./src:/code
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+
+  exchange-ws-2:
+    container_name: exchange-ws-2
+    image: mock_exchange:latest
+    command: python ws.py
+    environment:
+      - EXCHANGE_ID=2
+    ports:
+      - "8766:8766"
+    volumes:
+      - ./src:/code
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+
+  exchange-api-3:
+    container_name: exchange-api-3
+    image: mock_exchange:latest
+    command: python rest.py
+    environment:
+      - EXCHANGE_ID=3
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./src:/code
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+
+  exchange-ws-3:
+    container_name: exchange-ws-3
+    image: mock_exchange:latest
+    command: python ws.py
+    environment:
+      - EXCHANGE_ID=3
+    ports:
+      - "8767:8767"
     volumes:
       - ./src:/code
     depends_on:

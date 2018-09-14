@@ -40,7 +40,13 @@ async def cancel_order(request):
     return response
 
 
-@app.get('/orders/', name='list_orders_page')
+@app.get('/orders/', name='get_orders')
+async def get_orders(request):
+    result = await get_orders_controller(request.args, request.app.exchange, format="json")
+    return result
+
+
+@app.get('/', name='list_orders_page')
 async def list_orders_page(request):
     result = await get_orders_controller(request.args, request.app.exchange)
     return result

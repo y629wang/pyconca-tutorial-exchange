@@ -96,7 +96,7 @@ async def cancel_order_controller(data, exchange):
         return response.json({'error':'Order not found'}, status=422)
 
 
-async def get_orders_controller(data, exchange):
+async def get_orders_controller(data, exchange, format=None):
     try:
         orderbook = exchange.get_orderbook(data['pair'][0])
     except MalformedInputException as e:
@@ -105,13 +105,17 @@ async def get_orders_controller(data, exchange):
             status=422,
         )
     except KeyError:
-        return response.json(
-            {'error':'Bad input, pair not found', 'request_params': data},
-            status=400,
-        )
+        orderbook = exchange.get_orderbook(list(PAIRS.keys())[0])
 
     bids, asks = await orderbook.get_orders()
+    if format == "json":
+        return {"bids":bids, "asks":asks}
     with open('templates/orderbook.html') as f:
         template_text = f.read()
     template = Template(template_text)
-    return response.html(template.render(bids=bids, asks=asks, pairs=PAIRS))
+    return response.html(template.render(
+        bids=bids,
+        asks=asks,
+        pairs=PAIRS,
+        current_pair=orderbook.pair,
+    ))

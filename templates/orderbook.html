@@ -113,11 +113,7 @@ $(document).ready(function() {
     $('#example2').DataTable({"searching": false, "paging":false});
 } );
 
-var url_string = window.location.href; //window.location.href
-var url = new URL(url_string);
-var pair = url.searchParams.get("pair");
-
-$('#placeOrderHeading').text("Place An Order for pair: " + pair);
+$('#placeOrderHeading').text("Place An Order for pair: {{ current_pair }}");
 $('#inputpair').val(pair)
 
 

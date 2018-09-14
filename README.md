@@ -27,5 +27,5 @@ A mock exchange for testing purposes.
 
 2. Health check `/ping/`
 
-3. localhost:8000/orders/
+3. User documentation on this page: https://docs.google.com/document/d/1FcK4T_Q8UrGja0wxjfvUlMXoXEToZtYu9L78I4q3YTk/edit
 

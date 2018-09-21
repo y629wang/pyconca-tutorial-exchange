@@ -42,7 +42,7 @@ class Orderbook:
     async def _insert_to_bid(self, order_id, price):
         async with self.redis_pool.get() as redis:
             print(self._keys['bid'])
-            await redis.execute('ZADD', self._keys['bid'], price, order_id)
+            await redis.execute('ZADD', self._keys['bid'], '-1' + price, order_id)
 
     async def publish_message(self, message):
         async with self.redis_pool.get() as redis:
@@ -156,7 +156,7 @@ class Orderbook:
         """
         async with self.redis_pool.get() as redis:
             asks = await redis.execute('ZRANGE', self._keys['ask'], 0, n-1)
-            bids = await redis.execute('ZREVRANGE', self._keys['bid'], 0, n-1)
+            bids = await redis.execute('ZRANGE', self._keys['bid'], 0, n-1)
         return ([await OrderDetail(b).get_data(self.redis_pool) for b in bids],
                [await OrderDetail(a).get_data(self.redis_pool) for a in asks])
 

@@ -2,6 +2,7 @@ from sanic import Sanic
 import time
 from sanic.response import json
 import aioredis
+import config
 from constants import BALANCES, PAIRS, EXCHANGE_ID
 from orderbook import Exchange
 from controllers import (
@@ -67,7 +68,7 @@ async def before_server_start(app, loop):
     print(f'Starting Exchange : {EXCHANGE_ID}')
     try:
         app.redis_pool = await aioredis.create_pool(
-            ('redis', 6379),
+            (config.REDIS_PATH, 6379),
             minsize=5,
             maxsize=10,
             loop=loop

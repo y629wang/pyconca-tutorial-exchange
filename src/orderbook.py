@@ -78,7 +78,10 @@ class Orderbook:
         }
 
     async def _matching_engine(self):
-        top_bid, top_ask = await self._get_top_of_book()
+        try:
+            top_bid, top_ask = await self._get_top_of_book()
+        except IndexError:
+            return False
         if Decimal(top_bid['price']) < Decimal(top_ask['price']):
             return False
 

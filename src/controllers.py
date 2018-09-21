@@ -6,8 +6,6 @@ from jinja2 import Template
 
 
 async def place_order_controller(data, exchange):
-    import ipdb
-    ipdb.set_trace()
     try:
         orderbook = exchange.get_orderbook(data['pair'])
     except MalformedInputException as e:

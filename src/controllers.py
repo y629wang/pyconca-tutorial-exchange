@@ -41,6 +41,15 @@ async def place_order_controller(data, exchange):
             },
             status=400,
         )
+
+    if price != data['price']:
+        return response.json(
+            {'error':'Bad input, price parameter has wrong precision',
+             'request_params': data,
+            },
+            status=400,
+        )
+
     side = data.get('side', '').lower()
     if side not in ['bid', 'ask']:
         return response.json(
@@ -65,6 +74,8 @@ async def place_order_controller(data, exchange):
             },
             status=400,
         )
+    import ipdb
+    ipdb.set_trace()
 
     order_id = await exchange.get_incremented_order_id()
     details = await orderbook.insert_order(order_id, data['pair'], amount,

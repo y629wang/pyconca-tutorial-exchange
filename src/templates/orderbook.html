@@ -63,7 +63,7 @@
                     <th>Bid Price</th>
                     <th>User</th>
                     <th> Order id</th>
-                    <th> <i class="fas fa-times-circle"></i></th>
+                    <th> Delete Order</th>
                 </tr>
             </thead>
             <tbody>
@@ -74,6 +74,7 @@
                     <td>{{ bid.price }}</td>
                     <td>{{ bid.userid }}</td>
                     <td>{{ bid.orderid }}</td>
+                    <td data-orderid={{ bid.orderid }} class="deleteOrder"> <i class="fas fa-times-circle"></i></td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -91,6 +92,7 @@
                     <th>Ask Price</th>
                     <th>User</th>
                     <th> Order id</th>
+                    <th> Delete Order</th>
                 </tr>
             </thead>
             <tbody>
@@ -101,6 +103,7 @@
                     <td>{{ ask.price }}</td>
                     <td>{{ ask.userid }}</td>
                     <td> {{ ask.orderid }}</td>
+                    <td class="deleteOrder" data-orderid={{ ask.orderid }}> <i class="fas fa-times-circle"></i></td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -109,6 +112,7 @@
   </div>
 </div>
 <script> 
+
 $(document).ready(function() {
     $('#example').DataTable({"searching": false, "paging":false});
 } );
@@ -119,6 +123,9 @@ $(document).ready(function() {
 $('#placeOrderHeading').text("Place An Order for pair: {{ current_pair }}");
 $('#inputpair').val("{{ current_pair }}")
 
+$('.deleteOrder').click(function () {
+    deleteOrder($(this).data().orderid)
+})
 
 function submit() {
     var raw_data = $('#orderForm').serializeArray()
@@ -137,6 +144,19 @@ function submit() {
         success: function(a, b, c) { window.location.reload(); },
         error: function(a, b, c) {alert('ERROR: ' + a.responseJSON.error)}
     })
+}
+
+function deleteOrder(orderid) {
+    body = {pair : "{{ current_pair }}", order_id: orderid}
+    $.ajax({
+        type: 'delete',
+        contentType: 'applicatin/json',
+        dataType: 'json',
+        url: '/orders/',
+        data: JSON.stringify(body),
+        success: function(a,b,c) {window.location.reload();},
+        error: function (a, b, c) {alert('ERROR: ' + a.responseJSON.error)}
+    });
 }
 
 </script>

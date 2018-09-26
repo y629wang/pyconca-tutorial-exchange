@@ -5,24 +5,42 @@ from exceptions import MalformedInputException
 from itertools import chain
 import json
 from decimal import Decimal
+from trades import Trade
 
 
 class Exchange:
     def __init__(self, redis_pool):
-        self._redis_pool = redis_pool
+        self.redis_pool = redis_pool
         self._orderbooks = {p:Orderbook(p, redis_pool) for p in PAIRS}
         self._order_id_key = f'ORDERID:{EXCHANGE_ID}'
         self._trade_id_key = f'TRADEID:{EXCHANGE_ID}'
 
     async def reset_orderid_if_required(self):
-        async with self._redis_pool.get() as redis:
+        async with self.redis_pool.get() as redis:
             await redis.execute('SETNX', self._order_id_key, 1)
             await redis.execute('SETNX', self._trade_id_key, 1)
 
     async def get_incremented_order_id(self):
-        async with self._redis_pool.get() as redis:
+        async with self.redis_pool.get() as redis:
             val = await redis.execute('INCR', self._order_id_key)
         return val
+
+    async def get_incremented_trade_id(self):
+        async with self.redis_pool.get() as redis:
+            val = await redis.execute('INCR', self._trade_id_key)
+        return val
+
+    async def get_latest_trades(self):
+        async with self.redis_pool.get() as redis:
+            latest_trade_id = int(await redis.execute('GET', self._trade_id_key))
+            relevant_trade_ids = range(
+                latest_trade_id,
+                max(latest_trade_id - 20, 0),
+                -1,
+            )
+            trades_coro = [Trade(i,self.redis_pool).as_dict() for i in relevant_trade_ids]
+            trades = await asyncio.gather(*trades_coro)
+        return trades
 
     def get_orderbook(self, pair):
         try:
@@ -64,20 +82,7 @@ class Orderbook:
         bids, asks = await self.get_orders(n=1)
         return bids[0], asks[0]
 
-    def _make_trade_json(self, bid, ask, amount=None):
-        if amount is None:
-            amount = ask["amount"]
-        now = time.time()
-        return {"price":ask["price"],
-                "pair": ask["pair"],
-                "amount":amount,
-                "bid_user":bid["userid"],
-                "ask_user":ask["userid"],
-                "server_time":now,
-                "trade_id": '',
-        }
-
-    async def _matching_engine(self):
+    async def _matching_engine(self, trade):
         try:
             top_bid, top_ask = await self._get_top_of_book()
         except IndexError:
@@ -90,29 +95,28 @@ class Orderbook:
             aaa = await self.remove_order(top_ask['orderid'])
             # remove the bid
             bbb = await self.remove_order(top_bid['orderid'])
-            trade = self._make_trade_json(top_bid, top_ask)
-            await self.publish_message(json.dumps(trade))
+            await trade.update(top_ask, top_bid)
             return True
 
         # if it matches partually, remove an order and modify the other one
         if Decimal(top_bid['amount']) > Decimal(top_ask['amount']):
-            trade = self._make_trade_json(top_bid, top_ask, amount=top_ask['amount'])
+            #trade = self._make_trade(top_bid, top_ask, amount=top_ask['amount'])
             await self.remove_order(top_ask['orderid'])
             await self._reduce_order(
                 top_bid['orderid'],
                 amount=top_ask['amount'],
             )
-            await self.publish_message(json.dumps(trade))
+            await trade.update(top_ask, top_bid, top_ask['amount'])
             return True
 
         if Decimal(top_bid['amount']) < Decimal(top_ask['amount']):
-            trade = self._make_trade_json(top_bid, top_ask, amount=top_bid['amount'])
+            #trade = self._make_trade(top_bid, top_ask, amount=top_bid['amount'])
             await self.remove_order(top_bid['orderid'])
             await self._reduce_order(
                 top_ask['orderid'],
                 amount=top_bid['amount'],
             )
-            await self.publish_message(json.dumps(trade))
+            await trade.update(top_ask, top_bid, top_bid['amount'])
             return True
 
     async def _reduce_order(self, order_id, amount):
@@ -124,10 +128,14 @@ class Orderbook:
             b = await redis.execute('ZREM', self._keys['ask'], order_id)
         return bool(a+b)
 
-    async def run_order_matching_engine(self):
+    async def run_order_matching_engine(self, trade_id):
+        trade = Trade(trade_id, self.redis_pool)
         need_matching = True
         while need_matching:
-            need_matching = await self._matching_engine()
+            need_matching = await self._matching_engine(trade)
+        trade_data = await trade.as_dict()
+        await self.publish_message(json.dumps(trade_data))
+        await trade.save_pairwise_data(trade_data)
 
     async def insert_order(self, order_id, pair, amount, price, side, userid):
         if side == 'bid':
@@ -187,7 +195,6 @@ class OrderDetail:
         return data
 
     async def get_data(self, redis_pool):
-        decoder = lambda x: x.decode() # bytes to string
         async with redis_pool.get() as redis:
             val = [i.decode() for i in await redis.execute('HGETALL', self.key)]
         return {**dict(zip(val[::2], val[1::2])), 'orderid':self.order_id}

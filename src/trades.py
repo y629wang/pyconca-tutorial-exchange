@@ -53,9 +53,8 @@ async def get_pairwise_trades(pair, redis_pool):
     if random() < .02 :
         async with redis_pool.get() as redis:
             val = await redis.execute('ZCARD', get_pairwise_key(pair))
-        if val > 20:
-            print(f'cleaning up old trades {val}')
-            async with redis_pool.get() as redis:
+            if val > 20:
+                print(f'cleaning up old trades {val}')
                 await redis.execute('ZPOPMIN', get_pairwise_key(pair), val - 20)
 
 

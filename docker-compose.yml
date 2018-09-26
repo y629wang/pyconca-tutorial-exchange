@@ -37,7 +37,7 @@ services:
     environment:
       - EXCHANGE_ID=2
     ports:
-      - "8001:8001"
+      - "8001:8000"
     volumes:
       - ./src:/code
     depends_on:
@@ -52,7 +52,7 @@ services:
     environment:
       - EXCHANGE_ID=2
     ports:
-      - "8766:8766"
+      - "8766:8765"
     volumes:
       - ./src:/code
     depends_on:
@@ -67,7 +67,7 @@ services:
     environment:
       - EXCHANGE_ID=3
     ports:
-      - "8002:8002"
+      - "8002:8000"
     volumes:
       - ./src:/code
     depends_on:
@@ -82,7 +82,7 @@ services:
     environment:
       - EXCHANGE_ID=3
     ports:
-      - "8767:8767"
+      - "8767:8765"
     volumes:
       - ./src:/code
     depends_on:

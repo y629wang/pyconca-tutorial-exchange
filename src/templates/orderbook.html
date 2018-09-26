@@ -110,6 +110,36 @@
         </table>
     </div>
   </div>
+  <div class="row align-items-end">
+    <div class="col">
+      <h4> Trades </h4>
+      <table id="example3" class="display">
+        <thead>
+        <tr>
+          <th> time </th>
+          <th> id </th>
+          <th> price </th>
+          <th> amount</th>
+          <th> bid user</th>
+          <th> ask user</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for t in trades %}
+        <tr>
+          <td> {{ t.server_time | int }}</td>
+          <td> {{ t.trade_id }}</td>
+          <td> {{ t.price }}</td>
+          <td> {{ t.amount }}</td>
+          <td> {{ t.bid_user }}</td>
+          <td> {{ t.ask_user }}</td>
+
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 <script> 
 
@@ -118,6 +148,10 @@ $(document).ready(function() {
 } );
 $(document).ready(function() {
     $('#example2').DataTable({"searching": false, "paging":false});
+} );
+
+$(document).ready(function() {
+    $('#example3').DataTable({"searching": false, "paging":false, "ordering":false});
 } );
 
 $('#placeOrderHeading').text("Place An Order for pair: {{ current_pair }}");

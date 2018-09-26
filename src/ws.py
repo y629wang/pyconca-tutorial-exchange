@@ -1,4 +1,5 @@
 import asyncio
+import config
 import aioredis
 from aioredis.pubsub import Receiver
 import websockets
@@ -9,6 +10,7 @@ class RedisToWS:
     def __init__(self):
         self.loop = asyncio.get_event_loop()
         self.loop.set_debug(True)
+        print('starting up')
         self.channel = 'updates'
 
     def start(self):
@@ -26,7 +28,7 @@ class RedisToWS:
 
     async def receive(self):
         print('receive starting from redis')
-        connection = await aioredis.create_connection(('redis', 6379))
+        connection = await aioredis.create_connection((config.REDIS_PATH, 6379))
         receiver = Receiver()
         connection.execute_pubsub('subscribe', receiver.channel(self.channel))
         while (await receiver.wait_message()):

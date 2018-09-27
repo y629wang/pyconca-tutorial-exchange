@@ -16,9 +16,11 @@ A mock exchange for testing purposes.
 
 1. Install prerequisites in the machine
 
-2. Build Step `docker build -t mock_exchange .`
+2. Make sure src/config.py has REDIS_PATH = 'redis'. 
 
-3. Run Step `docker-compose up`
+3. Build Step `docker build -t mock_exchange .`
+
+4. Run Step `docker-compose up`
 
 # How to use
 1. The REST API server spins up at `localhost:8000`

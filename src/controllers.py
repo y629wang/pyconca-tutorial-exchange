@@ -128,7 +128,7 @@ async def get_orders_controller(data, exchange, format=None):
         )
     bids, asks = await orderbook.get_orders()
     if format == "json":
-        return {"bids":bids, "asks":asks}
+        return response.json({"bids":bids, "asks":asks})
 
     with open('templates/orderbook.html') as f:
         template_text = f.read()

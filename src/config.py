@@ -1,1 +1,1 @@
-REDIS_PATH = 'localhost'
+REDIS_PATH = 'redis'

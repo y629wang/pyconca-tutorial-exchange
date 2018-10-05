@@ -1,4 +1,5 @@
 from constants import EXCHANGE_ID, PAIRS
+from common import price_to_score
 import time
 import asyncio
 from exceptions import MalformedInputException
@@ -60,11 +61,11 @@ class Orderbook:
     async def _insert_to_bid(self, order_id, price):
         async with self.redis_pool.get() as redis:
             print(self._keys['bid'])
-            await redis.execute('ZADD', self._keys['bid'], '-1' + price, order_id)
+            await redis.execute('ZADD', self._keys['bid'], '-' + price, order_id)
 
-    async def publish_message(self, message):
+    async def publish_message(self, message, channel):
         async with self.redis_pool.get() as redis:
-            await redis.execute('PUBLISH', 'updates', message)
+            await redis.execute('PUBLISH', channel, message)
 
     async def _insert_to_ask(self, order_id, price):
         async with self.redis_pool.get() as redis:
@@ -134,17 +135,18 @@ class Orderbook:
         while need_matching:
             need_matching = await self._matching_engine(trade)
         trade_data = await trade.as_dict()
-        await self.publish_message(json.dumps(trade_data))
+        await self.publish_message(json.dumps(trade_data), 'trades')
         await trade.save_pairwise_data(trade_data)
 
     async def insert_order(self, order_id, pair, amount, price, side, userid):
+        price_score = price_to_score(side, price, pair)
         if side == 'bid':
-            await self._insert_to_bid(order_id, price)
+            await self._insert_to_bid(order_id, price_score)
         else:
-            await self._insert_to_ask(order_id, price)
+            await self._insert_to_ask(order_id, price_score)
         data = {'price':price, 'amount':amount, 'side':side, 'pair':pair, 'userid':userid}
         data = await OrderDetail(order_id).set_data(data, self.redis_pool)
-        await self.publish_message(json.dumps(data))
+        await self.publish_message(json.dumps(data), 'orders')
         return data
 
     async def remove_order(self, order_id):
@@ -155,7 +157,7 @@ class Orderbook:
         if found:
             data = await OrderDetail(order_id).pop(self.redis_pool)
             data['amount'] = '-' + data['amount']
-            await self.publish_message(json.dumps(data))
+            await self.publish_message(json.dumps(data), 'orders')
         return found
 
     async def get_orders(self, n=20):

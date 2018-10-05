@@ -2,15 +2,12 @@ from collections import namedtuple
 from os import environ
 
 
-
 BALANCES = {
     'USD': '100',
     'BTC': '0.2',
     'ETH': '1.9',
     'XLM': '197',
 }
-
-
 EXCHANGE_ID = int(environ.get('EXCHANGE_ID', 1))
 PAIRS_DATA = {1: {'ETHUSD':{'ticksize':'0.0000001','quantity_increment':'0.001'},
                   'ETHBTC':{'ticksize':'0.00000001','quantity_increment':'0.001'},

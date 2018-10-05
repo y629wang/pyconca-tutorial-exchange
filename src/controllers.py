@@ -126,13 +126,14 @@ async def get_orders_controller(data, exchange, format=None):
             {'error':'unrecognized pair', 'request_params': data},
             status=422,
         )
-    bids, asks = await orderbook.get_orders()
     if format == "json":
+        bids, asks = await orderbook.get_orders(n=500)
         return response.json({"bids":bids, "asks":asks})
 
     with open('templates/orderbook.html') as f:
         template_text = f.read()
     template = Template(template_text)
+    bids, asks = await orderbook.get_orders(n=20)
     trades = await get_pairwise_trades(pair, exchange.redis_pool)
     return response.html(template.render(
         bids=bids,

@@ -1,1 +1,2 @@
 REDIS_PATH = 'redis'
+HEARTBEAT_DURATION = 2 #seconds

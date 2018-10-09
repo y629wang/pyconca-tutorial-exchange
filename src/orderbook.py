@@ -1,5 +1,5 @@
 from constants import EXCHANGE_ID, PAIRS
-from common import price_to_score
+from common import price_to_score, orderbook_key_redis, order_detail_key_redis
 import time
 import asyncio
 from exceptions import MalformedInputException
@@ -173,7 +173,7 @@ class OrderDetail:
     def __init__(self, order_id):
         self.order_id = int(order_id)
         self.exchange_id = EXCHANGE_ID
-        self.key = f'ORDERDETAIL:{self.exchange_id}:{self.order_id}'
+        self.key = order_detail_key_redis(self.exchange_id, self.order_id)
 
     async def reduce_amount(self, amount, redis_pool):
         async with redis_pool.get() as redis:

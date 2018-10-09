@@ -54,14 +54,12 @@ class Orderbook:
     def __init__(self, pair, redis_pool):
         self.pair = pair
         self.redis_pool = redis_pool
-        self._keys = {'bid': f'BIDS:exchange-{EXCHANGE_ID}:{pair}',
-                      'ask': f'ASKS:exchange-{EXCHANGE_ID}:{pair}',
-        }
+        self._keys = lambda side: orderbook_key_redis(EXCHANGE_ID, pair, side)
 
     async def _insert_to_bid(self, order_id, price):
         async with self.redis_pool.get() as redis:
-            print(self._keys['bid'])
-            await redis.execute('ZADD', self._keys['bid'], '-' + price, order_id)
+            print(self._keys('bid'))
+            await redis.execute('ZADD', self._keys('bid'), '-' + price, order_id)
 
     async def publish_message(self, message, channel):
         async with self.redis_pool.get() as redis:
@@ -69,8 +67,8 @@ class Orderbook:
 
     async def _insert_to_ask(self, order_id, price):
         async with self.redis_pool.get() as redis:
-            print(self._keys['ask'])
-            await redis.execute('ZADD', self._keys['ask'], price, order_id)
+            print(self._keys('ask'))
+            await redis.execute('ZADD', self._keys('ask'), price, order_id)
 
     async def check_for_matches(self):
         try:
@@ -125,8 +123,8 @@ class Orderbook:
 
     async def _remove_from_bid_and_ask(self, order_id):
         async with self.redis_pool.get() as redis:
-            a = await redis.execute('ZREM', self._keys['bid'], order_id)
-            b = await redis.execute('ZREM', self._keys['ask'], order_id)
+            a = await redis.execute('ZREM', self._keys('bid'), order_id)
+            b = await redis.execute('ZREM', self._keys('ask'), order_id)
         return bool(a+b)
 
     async def run_order_matching_engine(self, trade_id):
@@ -165,8 +163,8 @@ class Orderbook:
         returns all orders in the orderbook right now. paginated by 20
         """
         async with self.redis_pool.get() as redis:
-            asks = await redis.execute('ZRANGE', self._keys['ask'], 0, n-1)
-            bids = await redis.execute('ZRANGE', self._keys['bid'], 0, n-1)
+            asks = await redis.execute('ZRANGE', self._keys('ask'), 0, n-1)
+            bids = await redis.execute('ZRANGE', self._keys('bid'), 0, n-1)
         return ([await OrderDetail(b).get_data(self.redis_pool) for b in bids],
                [await OrderDetail(a).get_data(self.redis_pool) for a in asks])
 

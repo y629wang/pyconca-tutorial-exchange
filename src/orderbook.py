@@ -13,27 +13,27 @@ class Exchange:
     def __init__(self, redis_pool):
         self.redis_pool = redis_pool
         self._orderbooks = {p:Orderbook(p, redis_pool) for p in PAIRS}
-        self._order_id_key = f'ORDERID:{EXCHANGE_ID}'
-        self._trade_id_key = f'TRADEID:{EXCHANGE_ID}'
+        self._latest_order_id_key = f'ORDERID:{EXCHANGE_ID}'
+        self._latest_trade_id_key = f'TRADEID:{EXCHANGE_ID}'
 
     async def reset_orderid_if_required(self):
         async with self.redis_pool.get() as redis:
-            await redis.execute('SETNX', self._order_id_key, 1)
-            await redis.execute('SETNX', self._trade_id_key, 1)
+            await redis.execute('SETNX', self._latest_order_id_key, 1)
+            await redis.execute('SETNX', self._latest_trade_id_key, 1)
 
     async def get_incremented_order_id(self):
         async with self.redis_pool.get() as redis:
-            val = await redis.execute('INCR', self._order_id_key)
+            val = await redis.execute('INCR', self._latest_order_id_key)
         return val
 
     async def get_incremented_trade_id(self):
         async with self.redis_pool.get() as redis:
-            val = await redis.execute('INCR', self._trade_id_key)
+            val = await redis.execute('INCR', self._latest_trade_id_key)
         return val
 
     async def get_latest_trades(self):
         async with self.redis_pool.get() as redis:
-            latest_trade_id = int(await redis.execute('GET', self._trade_id_key))
+            latest_trade_id = int(await redis.execute('GET', self._latest_trade_id_key))
             relevant_trade_ids = range(
                 latest_trade_id,
                 max(latest_trade_id - 20, 0),

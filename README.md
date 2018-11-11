@@ -1,7 +1,7 @@
 # mock-exchange
 
 A mock exchange for testing purposes. 
-☠☠ THIS IS WORK IN PROGRESS  ☠☠
+☠☠ THIS IS WORK IN PROGRESS  ☠☠ Do not deploy it in production for real money!
 
 
 

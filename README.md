@@ -3,7 +3,6 @@
 A mock exchange for testing purposes. 
 ☠☠ THIS IS WORK IN PROGRESS  ☠☠
 
-* [Please report any bugs / issues here](https://gitlab.com/swissborg/oms/mock-exchange/issues/new)
 
 
 # Prerequisites
@@ -28,6 +27,3 @@ A mock exchange for testing purposes.
 2. Websocket server spins up at `localhost:8765`
 
 2. Health check `/ping/`
-
-3. User documentation on this page: https://docs.google.com/document/d/1FcK4T_Q8UrGja0wxjfvUlMXoXEToZtYu9L78I4q3YTk/edit
-
